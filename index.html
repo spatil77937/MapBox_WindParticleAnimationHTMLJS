@@ -61,26 +61,8 @@
       resetWind(map)
       map.setPaintProperty('water-fill', 'fill-color', '#24293A');
     });
-
-    map.addSource(`wms-GUST-source`, {
-            type: 'raster',
-            tiles: [
-              `http://94.100.26.132:8080/geoserver/seaker/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&STYLES&TIME=${'2023-02-17T09:00:00Z'}&LAYERS=seaker:${'wind'}&exceptions=application/vnd.ogc.se_inimage&SRS=EPSG:3857&WIDTH=1000&HEIGHT=500&BBOX={bbox-epsg-3857}&tiled=false`,
-            ],
-            tileSize: 2000,
-          })
-          map.addLayer(
-            {
-              id: `wms-GUST-layer`,
-              type: 'raster',
-              source: `wms-GUST-source`,
-              paint: {
-                // 'raster-opacity':0.5
-              },
-            },
-            '' // Place layer under labels, roads and buildings.
-          )
-     })
+      
+  })
 
     
     function resetWind(map) {
