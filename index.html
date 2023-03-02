@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Wind Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!--   CDN SCRIPTS -->
+  <script src='https://api.mapbox.com/mapbox-gl-js/v1.7.0/mapbox-gl.js'></script>
+ 
+  <!--   LOCAL SCRIPTS -->
+  <script src="./libs/windy2.js"></script>
+
+  <!--   CDN STYLES -->
+  <link href='https://api.mapbox.com/mapbox-gl-js/v1.7.0/mapbox-gl.css' rel='stylesheet' />
+
+
+  <link href='./styles/styles.css' rel='stylesheet' />
+
+</head>
+
+<body translate="no">
+
+  <div style="display:initial" class="wind-map-container">
+    <canvas id="mapcanvas"></canvas>
+  </div>
+
+  <!--   MAPBOX MAP CONTAINER -->
+  <div class="mapbox-map-container">
+    <div id="mapbox_map"></div>
+  </div>
+
+  <script>
+    let windy;
+    let timeout;
+   
+    mapboxgl.accessToken = 'pk.eyJ1Ijoia2F0YW1hcmFuaTQiLCJhIjoiY2ppNDdtenh5MDFkYTN2b2VjOG5ucmIybCJ9.AG0bncC30hHPHVRnVGeCxQ'
+
+    const map = new mapboxgl.Map({
+      container: 'mapbox_map',
+      center: [45, 0],
+      zoom: 1.5,
+      style: 'mapbox://styles/mapbox/dark-v10',
+    });
+
+    map.on('resize', e => {
+      resetWind(map)
+    })
+
+    map.on('move', e => {
+      resetWind(map)
+    })
+
+    map.on('zoom', e => {
+      resetWind(map)
+    })
+
+    map.on('load',e=>{
+      map.once('style.load', function () {
+      resetWind(map)
+      map.setPaintProperty('water-fill', 'fill-color', '#24293A');
+    });
+
+    map.addSource(`wms-GUST-source`, {
+            type: 'raster',
+            tiles: [
+              `http://94.100.26.132:8080/geoserver/seaker/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&STYLES&TIME=${'2023-02-17T09:00:00Z'}&LAYERS=seaker:${'wind'}&exceptions=application/vnd.ogc.se_inimage&SRS=EPSG:3857&WIDTH=1000&HEIGHT=500&BBOX={bbox-epsg-3857}&tiled=false`,
+            ],
+            tileSize: 2000,
+          })
+          map.addLayer(
+            {
+              id: `wms-GUST-layer`,
+              type: 'raster',
+              source: `wms-GUST-source`,
+              paint: {
+                // 'raster-opacity':0.5
+              },
+            },
+            '' // Place layer under labels, roads and buildings.
+          )
+     })
+
+    
+    function resetWind(map) {
+      const obj = getEventObject(map);
+      const { zoomLevel, north, south, west, east, width, height } = obj;
+      mapcanvas.style.display = 'none';
+      if (windy) {
+        windy.stop();
+      }
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      timeout = setTimeout(function () {
+        let particleWidth = 0.8;
+        if (zoomLevel > 2) {
+          particleWidth = 0.6
+        }
+        if (zoomLevel > 3) {
+          particleWidth = 0.4
+        }
+        if (zoomLevel > 4) {
+          particleWidth = 0.2
+        }
+        if (zoomLevel > 5) {
+          particleWidth = 0.07
+        }
+        if (zoomLevel > 6) {
+          particleWidth = 0.05
+        }
+        mapcanvas.style.display = 'initial';
+        mapcanvas.width = width;
+        mapcanvas.height = height;
+        windy.start(
+          [[0, 0], [width, height]],
+          width,
+          height,
+          [[west, south,], [east, north,]],
+          { particleLineWidth: particleWidth }
+        );
+      }, 500)
+    }
+
+    function getEventObject(map) {
+      const canvasWidth = map.getCanvas().style.width;
+      const canvasHeight = map.getCanvas().style.height;
+      const dimensions = map.getBounds();
+      console.log(canvasWidth,canvasHeight)
+      const result = {
+        width: parseInt(canvasWidth.slice(0,-2)),
+        height: parseInt(canvasHeight.slice(0,-2)),
+        north: dimensions.getNorth(),
+        south: dimensions.getSouth(),
+        west: dimensions.getWest(),
+        east: dimensions.getEast(),
+        zoomLevel: map.getZoom()
+      }
+      return result;
+    }
+
+debugger;
+    fetch('gfs2.json',{
+    'mode':'cors'
+  })
+      .then(d => d.json())
+      .then((data) => {
+        console.log(data,mapcanvas);
+        // Remember - dom elements with ID, are exposed globally, so mapcanvas element exists already
+        windy = new Windy({ canvas: mapcanvas, data: data });
+        resetWind(map)
+      })
+
+
+  </script>
+
+</body>
+
+
+</html>
